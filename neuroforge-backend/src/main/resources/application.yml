@@ -1,0 +1,39 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: neuroforge-backend
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/neuroforge?createDatabaseIfNotExist=false&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+neuroforge:
+  jwt:
+    secret: ${JWT_SECRET:}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 hours
+  demo-mode:
+    enabled: ${DEMO_MODE_ENABLED:true}
+    seed-sample-data: ${SEED_SAMPLE_DATA:true}
+  ai:
+    provider: ${AI_PROVIDER:offline} # offline | openai | gemini
+    api-key: ${AI_API_KEY:}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

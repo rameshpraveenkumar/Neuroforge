@@ -1,0 +1,29 @@
+# Environment and secrets
+.env
+.env.local
+*.log
+
+# Maven & Java
+target/
+*.class
+.mvn/wrapper/maven-wrapper.jar
+.project
+.classpath
+.settings/
+.idea/
+*.iml
+
+# Node / React
+node_modules/
+dist/
+.dist/
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.env.example
