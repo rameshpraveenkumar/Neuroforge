@@ -10,6 +10,7 @@ public class AiSuggestionResponse {
     private String recommendationType;
     private String suggestion;
     private LocalDateTime createdAt;
+    private String source = "OFFLINE_HEURISTIC";
 
     public AiSuggestionResponse() {}
 
@@ -25,6 +26,8 @@ public class AiSuggestionResponse {
     public Integer getSuggestionId() { return suggestionId; }
     public void setSuggestionId(Integer suggestionId) { this.suggestionId = suggestionId; }
 
+    public Integer getId() { return suggestionId; }
+
     public Integer getAiId() { return aiId; }
     public void setAiId(Integer aiId) { this.aiId = aiId; }
 
@@ -34,9 +37,16 @@ public class AiSuggestionResponse {
     public String getRecommendationType() { return recommendationType; }
     public void setRecommendationType(String recommendationType) { this.recommendationType = recommendationType; }
 
+    public String getSuggestionType() { return recommendationType; }
+
     public String getSuggestion() { return suggestion; }
     public void setSuggestion(String suggestion) { this.suggestion = suggestion; }
 
+    public String getSuggestionText() { return suggestion; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
 }

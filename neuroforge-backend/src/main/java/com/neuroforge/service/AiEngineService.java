@@ -1,48 +1,59 @@
 package com.neuroforge.service;
 
 import com.neuroforge.dto.request.AiGenerateRequest;
+import com.neuroforge.dto.response.AiAssistantResponse;
 import com.neuroforge.dto.response.AiSuggestionResponse;
 import com.neuroforge.entity.AiAssistant;
 import com.neuroforge.entity.AiSuggestion;
-import com.neuroforge.entity.Project;
 import com.neuroforge.entity.ProjectAi;
 import com.neuroforge.exception.ResourceNotFoundException;
 import com.neuroforge.repository.AiAssistantRepository;
 import com.neuroforge.repository.AiSuggestionRepository;
 import com.neuroforge.repository.ProjectAiRepository;
 import com.neuroforge.repository.ProjectRepository;
+import com.neuroforge.service.ai.ExternalLlmProvider;
+import com.neuroforge.service.ai.OfflineAiProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 public class AiEngineService {
 
+    private static final Logger logger = LoggerFactory.getLogger(AiEngineService.class);
+
     private final AiAssistantRepository aiAssistantRepository;
     private final ProjectAiRepository projectAiRepository;
     private final AiSuggestionRepository aiSuggestionRepository;
     private final ProjectRepository projectRepository;
     private final AuditLogService auditLogService;
+    private final OfflineAiProvider offlineAiProvider;
+    private final ExternalLlmProvider externalLlmProvider;
 
     public AiEngineService(AiAssistantRepository aiAssistantRepository,
                            ProjectAiRepository projectAiRepository,
                            AiSuggestionRepository aiSuggestionRepository,
                            ProjectRepository projectRepository,
-                           AuditLogService auditLogService) {
-        this.auditLogService = auditLogService;
+                           AuditLogService auditLogService,
+                           OfflineAiProvider offlineAiProvider,
+                           ExternalLlmProvider externalLlmProvider) {
         this.aiAssistantRepository = aiAssistantRepository;
         this.projectAiRepository = projectAiRepository;
         this.aiSuggestionRepository = aiSuggestionRepository;
         this.projectRepository = projectRepository;
+        this.auditLogService = auditLogService;
+        this.offlineAiProvider = offlineAiProvider;
+        this.externalLlmProvider = externalLlmProvider;
     }
 
     @Transactional(readOnly = true)
-    public List<com.neuroforge.dto.response.AiAssistantResponse> getAllAiAssistants() {
+    public List<AiAssistantResponse> getAllAiAssistants() {
         return aiAssistantRepository.findAll().stream()
-                .map(a -> new com.neuroforge.dto.response.AiAssistantResponse(
+                .map(a -> new AiAssistantResponse(
                         a.getAiId(), a.getModelName(), a.getVersion(), a.getRecommendationType()
                 ))
                 .collect(Collectors.toList());
@@ -63,6 +74,7 @@ public class AiEngineService {
         String modelName = switch (type) {
             case "TEST_CASE" -> "TEST_CASE_GEN";
             case "SPRINT_RISK" -> "SPRINT_RISK";
+            case "CODE_REVIEW" -> "CODE_REVIEW_GEN";
             default -> "USER_STORY_GEN";
         };
 
@@ -70,7 +82,27 @@ public class AiEngineService {
                 .orElseGet(() -> aiAssistantRepository.findAll().stream().findFirst()
                         .orElseThrow(() -> new ResourceNotFoundException("No AI Assistant configured in system.")));
 
-        String generatedContent = synthesizeOfflineContent(type, request.getPrompt());
+        String generatedContent = null;
+        String providerUsed = "OFFLINE_HEURISTIC";
+
+        if (externalLlmProvider != null && externalLlmProvider.isAvailable()) {
+            try {
+                generatedContent = externalLlmProvider.generate(type, request.getPrompt());
+                if (generatedContent != null && !generatedContent.isBlank()) {
+                    providerUsed = "EXTERNAL_LLM";
+                }
+            } catch (Exception ex) {
+                logger.warn("External LLM generation failed, falling back to offline heuristic provider.");
+                generatedContent = null;
+            }
+        }
+
+        if (generatedContent == null || generatedContent.isBlank()) {
+            generatedContent = offlineAiProvider.generate(type, request.getPrompt());
+            if ("EXTERNAL_LLM".equals(providerUsed) || (externalLlmProvider != null && externalLlmProvider.isAvailable())) {
+                providerUsed = "OFFLINE_FALLBACK";
+            }
+        }
 
         AiSuggestion suggestion = new AiSuggestion(assistant, generatedContent);
         suggestion = aiSuggestionRepository.save(suggestion);
@@ -81,69 +113,13 @@ public class AiEngineService {
             });
         }
 
-        auditLogService.record("AI_SYNTHESIS_OFFLINE", "GENERATE", "AI", Long.valueOf(suggestion.getSuggestionId()), "Synthesized " + type + " with offline heuristic inference provider.");
-        return mapToResponse(suggestion);
-    }
+        String auditEvent = "EXTERNAL_LLM".equals(providerUsed) ? "AI_SYNTHESIS_EXTERNAL" : "AI_SYNTHESIS_OFFLINE";
+        auditLogService.record(auditEvent, "GENERATE", "AI", Long.valueOf(suggestion.getSuggestionId()),
+                "Synthesized " + type + " using " + providerUsed.toLowerCase().replace('_', ' ') + " provider.");
 
-    private String synthesizeOfflineContent(String type, String inputPrompt) {
-        String topic = inputPrompt != null && !inputPrompt.isBlank() ? inputPrompt.trim() : "System Feature";
-
-        return switch (type) {
-            case "TEST_CASE" -> """
-                    ### 🧪 AI-Generated Multi-Vector QA Test Matrix for: %s
-                    
-                    **Test Scenario 1: Happy Path Execution**
-                    - *Precondition*: Authenticated user with authorized permissions.
-                    - *Action*: Submit valid request payload matching API specifications.
-                    - *Expected Result*: HTTP 200 OK returned with structured ApiResponse and valid state update.
-                    
-                    **Test Scenario 2: Boundary & Edge Condition**
-                    - *Precondition*: Concurrent write requests targeting identical resource.
-                    - *Action*: Dispatch simultaneous update calls within 10ms window.
-                    - *Expected Result*: Optimistic lock check prevents lost updates; returns HTTP 409 Conflict if conflict occurs.
-                    
-                    **Test Scenario 3: Negative / Authorization Check**
-                    - *Precondition*: Unauthorized or expired Bearer JWT token.
-                    - *Action*: Invoke protected endpoint with mutated signature.
-                    - *Expected Result*: HTTP 401 Unauthorized / HTTP 403 Forbidden with security error envelope.
-                    """.formatted(topic);
-
-            case "SPRINT_RISK" -> """
-                    ### 📊 AI Sprint Velocity & Delivery Risk Assessment: %s
-                    
-                    - **Overall Health Score**: 88/100 (LOW RISK - On Track)
-                    - **Burnup / Velocity Indicator**: Estimated 92%% completion by sprint deadline.
-                    - **Risk Factors Identified**:
-                      1. 1 pending high-priority bug in verification queue.
-                      2. 2 tasks currently in code review stage awaiting approval.
-                    - **Recommendations**:
-                      - Expedite QA verification for critical defect.
-                      - Pair developers on final integration tests.
-                    """.formatted(topic);
-
-            case "CODE_REVIEW" -> """
-                    ### 🔍 AI Automated Code Review & Security Analysis: %s
-                    
-                    - **Architecture & Maintainability**: Clean separation between DTOs, Services, and Repositories.
-                    - **Security Evaluation**: Method-level @PreAuthorize correctly configured for RBAC.
-                    - **Performance Optimization**: Lazy loading enabled on collections to prevent N+1 queries.
-                    - **Verdict**: LGTM! Meets enterprise quality standards.
-                    """.formatted(topic);
-
-            default -> """
-                    ### 📖 AI-Generated User Story & Acceptance Criteria: %s
-                    
-                    **User Story**:
-                    *As an* Enterprise User,
-                    *I want* to %s,
-                    *So that* my team can maintain full SDLC traceability and operational efficiency.
-                    
-                    **Gherkin Acceptance Criteria (BDD)**:
-                    - **Given** an authenticated user with appropriate role permissions
-                    - **When** the user accesses the management portal and submits valid parameters
-                    - **Then** the system should validate the input, persist the relational record, and return an audit confirmation.
-                    """.formatted(topic, topic.toLowerCase());
-        };
+        AiSuggestionResponse response = mapToResponse(suggestion);
+        response.setSource(providerUsed);
+        return response;
     }
 
     private AiSuggestionResponse mapToResponse(AiSuggestion s) {
