@@ -1,6 +1,7 @@
 # Environment and secrets
 .env
 .env.local
+.env.*.local
 *.log
 
 # Maven & Java
@@ -23,7 +24,6 @@ yarn-debug.log*
 yarn-error.log*
 .eslintcache
 
-# OS / IDE files
+# OS / Temp files
 .DS_Store
 Thumbs.db
-.env.example

@@ -1,0 +1,16 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+
+neuroforge:
+  demo-mode:
+    enabled: ${DEMO_MODE_ENABLED:false}
+    seed-sample-data: ${SEED_SAMPLE_DATA:false}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}

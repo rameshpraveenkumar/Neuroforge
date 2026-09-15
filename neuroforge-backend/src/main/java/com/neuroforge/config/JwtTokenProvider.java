@@ -19,8 +19,13 @@ public class JwtTokenProvider {
     @Value("${neuroforge.jwt.expiration-ms}")
     private long jwtExpirationMs;
 
+    private static final String DEFAULT_DEV_SECRET = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
+
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        String secret = (jwtSecret != null && jwtSecret.trim().length() >= 32)
+                ? jwtSecret.trim()
+                : DEFAULT_DEV_SECRET;
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
