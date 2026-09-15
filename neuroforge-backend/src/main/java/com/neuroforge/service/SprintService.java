@@ -22,17 +22,20 @@ public class SprintService {
 
     private final SprintRepository sprintRepository;
     private final SprintGoalRepository sprintGoalRepository;
+    private final AuditLogService auditLogService;
     private final ProjectRepository projectRepository;
     private final TaskRepository taskRepository;
 
     public SprintService(SprintRepository sprintRepository,
                          SprintGoalRepository sprintGoalRepository,
                          ProjectRepository projectRepository,
-                         TaskRepository taskRepository) {
+                         TaskRepository taskRepository,
+                             AuditLogService auditLogService) {
         this.sprintRepository = sprintRepository;
         this.sprintGoalRepository = sprintGoalRepository;
         this.projectRepository = projectRepository;
         this.taskRepository = taskRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -78,6 +81,7 @@ public class SprintService {
             }
         }
 
+        auditLogService.record("SPRINT_CREATED", "CREATE", "SPRINT", Long.valueOf(sprint.getSprintId()), "Sprint created: " + sprint.getSprintName());
         return mapToResponse(sprint);
     }
 
@@ -100,6 +104,7 @@ public class SprintService {
         }
 
         sprint = sprintRepository.save(sprint);
+        auditLogService.record("SPRINT_UPDATED", "UPDATE", "SPRINT", Long.valueOf(sprint.getSprintId()), "Sprint updated: " + sprint.getSprintName());
         return mapToResponse(sprint);
     }
 
@@ -108,6 +113,7 @@ public class SprintService {
         Sprint sprint = sprintRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Sprint not found with id: " + id));
         sprintRepository.delete(sprint);
+        auditLogService.record("SPRINT_DELETED", "DELETE", "SPRINT", Long.valueOf(id), "Sprint deleted with ID: " + id);
     }
 
     private SprintResponse mapToResponse(Sprint sprint) {

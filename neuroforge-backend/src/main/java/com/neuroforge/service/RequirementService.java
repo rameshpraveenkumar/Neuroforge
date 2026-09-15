@@ -20,14 +20,17 @@ public class RequirementService {
 
     private final RequirementRepository requirementRepository;
     private final RequirementTagRepository requirementTagRepository;
+    private final AuditLogService auditLogService;
     private final ProjectRepository projectRepository;
 
     public RequirementService(RequirementRepository requirementRepository,
                               RequirementTagRepository requirementTagRepository,
-                              ProjectRepository projectRepository) {
+                              ProjectRepository projectRepository,
+                             AuditLogService auditLogService) {
         this.requirementRepository = requirementRepository;
         this.requirementTagRepository = requirementTagRepository;
         this.projectRepository = projectRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -73,6 +76,7 @@ public class RequirementService {
             }
         }
 
+        auditLogService.record("REQUIREMENT_CREATED", "CREATE", "REQUIREMENT", Long.valueOf(req.getRequirementId()), "Requirement created: " + req.getRequirementName());
         return mapToResponse(req);
     }
 
@@ -95,6 +99,7 @@ public class RequirementService {
         }
 
         req = requirementRepository.save(req);
+        auditLogService.record("REQUIREMENT_UPDATED", "UPDATE", "REQUIREMENT", Long.valueOf(req.getRequirementId()), "Requirement updated: " + req.getRequirementName());
         return mapToResponse(req);
     }
 
@@ -103,6 +108,7 @@ public class RequirementService {
         Requirement req = requirementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Requirement not found with id: " + id));
         requirementRepository.delete(req);
+        auditLogService.record("REQUIREMENT_DELETED", "DELETE", "REQUIREMENT", Long.valueOf(id), "Requirement deleted with ID: " + id);
     }
 
     private RequirementResponse mapToResponse(Requirement req) {

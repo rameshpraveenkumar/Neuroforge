@@ -25,11 +25,14 @@ public class AiEngineService {
     private final ProjectAiRepository projectAiRepository;
     private final AiSuggestionRepository aiSuggestionRepository;
     private final ProjectRepository projectRepository;
+    private final AuditLogService auditLogService;
 
     public AiEngineService(AiAssistantRepository aiAssistantRepository,
                            ProjectAiRepository projectAiRepository,
                            AiSuggestionRepository aiSuggestionRepository,
-                           ProjectRepository projectRepository) {
+                           ProjectRepository projectRepository,
+                           AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
         this.aiAssistantRepository = aiAssistantRepository;
         this.projectAiRepository = projectAiRepository;
         this.aiSuggestionRepository = aiSuggestionRepository;
@@ -78,6 +81,7 @@ public class AiEngineService {
             });
         }
 
+        auditLogService.record("AI_SYNTHESIS_OFFLINE", "GENERATE", "AI", Long.valueOf(suggestion.getSuggestionId()), "Synthesized " + type + " with offline heuristic inference provider.");
         return mapToResponse(suggestion);
     }
 

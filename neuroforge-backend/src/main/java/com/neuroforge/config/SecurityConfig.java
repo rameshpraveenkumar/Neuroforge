@@ -15,6 +15,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
+import org.springframework.beans.factory.annotation.Qualifier;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -24,7 +26,7 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter,
-                          CorsConfigurationSource corsConfigurationSource) {
+                          @Qualifier("corsConfigurationSource") CorsConfigurationSource corsConfigurationSource) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.corsConfigurationSource = corsConfigurationSource;
     }

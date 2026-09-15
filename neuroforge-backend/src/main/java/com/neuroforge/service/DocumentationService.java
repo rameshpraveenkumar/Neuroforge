@@ -20,11 +20,14 @@ public class DocumentationService {
 
     private final DocumentationRepository documentationRepository;
     private final ProjectRepository projectRepository;
+    private final AuditLogService auditLogService;
 
     public DocumentationService(DocumentationRepository documentationRepository,
-                                ProjectRepository projectRepository) {
+                                ProjectRepository projectRepository,
+                                AuditLogService auditLogService) {
         this.documentationRepository = documentationRepository;
         this.projectRepository = projectRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -67,6 +70,9 @@ public class DocumentationService {
                 LocalDateTime.now()
         );
         doc = documentationRepository.save(doc);
+
+        auditLogService.record("DOCUMENTATION_CREATED", "CREATE", "DOCUMENTATION", Long.valueOf(project.getProjectId()), "Architecture document created: " + doc.getTitle());
+
         return mapToResponse(doc);
     }
 
@@ -80,6 +86,9 @@ public class DocumentationService {
         if (request.getDocumentType() != null) doc.setDocumentType(request.getDocumentType());
 
         doc = documentationRepository.save(doc);
+
+        auditLogService.record("DOCUMENTATION_UPDATED", "UPDATE", "DOCUMENTATION", Long.valueOf(projectId), "Architecture document updated: " + doc.getTitle());
+
         return mapToResponse(doc);
     }
 
@@ -89,6 +98,8 @@ public class DocumentationService {
         Documentation doc = documentationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Documentation not found"));
         documentationRepository.delete(doc);
+
+        auditLogService.record("DOCUMENTATION_DELETED", "DELETE", "DOCUMENTATION", Long.valueOf(projectId), "Architecture document deleted for project ID: " + projectId);
     }
 
     private DocumentationResponse mapToResponse(Documentation doc) {

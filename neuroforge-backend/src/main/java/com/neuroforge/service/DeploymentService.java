@@ -22,13 +22,16 @@ public class DeploymentService {
     private final DeploymentRepository deploymentRepository;
     private final DeploymentLogRepository deploymentLogRepository;
     private final ProjectRepository projectRepository;
+    private final AuditLogService auditLogService;
 
     public DeploymentService(DeploymentRepository deploymentRepository,
                              DeploymentLogRepository deploymentLogRepository,
-                             ProjectRepository projectRepository) {
+                             ProjectRepository projectRepository,
+                             AuditLogService auditLogService) {
         this.deploymentRepository = deploymentRepository;
         this.deploymentLogRepository = deploymentLogRepository;
         this.projectRepository = projectRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -80,6 +83,8 @@ public class DeploymentService {
                 LocalDateTime.now()
         ));
 
+        auditLogService.record("DEPLOYMENT_RELEASE_EXEC", "RELEASE", "DEPLOYMENT", Long.valueOf(deployment.getDeploymentId()), "Target environment [" + request.getEnvironment() + "] release v" + request.getVersion() + " created.");
+
         return mapToResponse(deployment);
     }
 
@@ -99,6 +104,8 @@ public class DeploymentService {
                 "Deployment status transitioned to: " + status,
                 LocalDateTime.now()
         ));
+
+        auditLogService.record("DEPLOYMENT_STATUS_CHANGED", "STATUS_CHANGE", "DEPLOYMENT", Long.valueOf(deployment.getDeploymentId()), "Deployment status transitioned to: " + status + " for deployment ID: " + id);
 
         return mapToResponse(deployment);
     }

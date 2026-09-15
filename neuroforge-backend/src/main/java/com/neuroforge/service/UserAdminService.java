@@ -19,8 +19,11 @@ public class UserAdminService {
 
     private final UserRepository userRepository;
     private final UserPhoneRepository userPhoneRepository;
+    private final AuditLogService auditLogService;
 
-    public UserAdminService(UserRepository userRepository, UserPhoneRepository userPhoneRepository) {
+    public UserAdminService(UserRepository userRepository, UserPhoneRepository userPhoneRepository,
+                            AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
         this.userRepository = userRepository;
         this.userPhoneRepository = userPhoneRepository;
     }
@@ -50,6 +53,7 @@ public class UserAdminService {
         if (request.getPhone() != null) user.setPhone(request.getPhone());
 
         user = userRepository.save(user);
+        auditLogService.record("USER_UPDATED", "UPDATE", "USER", Long.valueOf(id), "User profile updated for user ID: " + id + " (" + user.getEmail() + ")");
         return mapToResponse(user);
     }
 
@@ -58,6 +62,7 @@ public class UserAdminService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
         userRepository.delete(user);
+        auditLogService.record("USER_DELETED", "DELETE", "USER", Long.valueOf(id), "User deleted with ID: " + id);
     }
 
     private UserProfileResponse mapToResponse(User user) {

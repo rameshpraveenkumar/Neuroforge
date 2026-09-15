@@ -32,6 +32,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final AuditLogService auditLogService;
 
     @Value("${neuroforge.demo-mode.enabled:true}")
     private boolean demoModeEnabled;
@@ -39,7 +40,9 @@ public class AuthService {
     public AuthService(AuthenticationManager authenticationManager,
                        UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JwtTokenProvider tokenProvider) {
+                       JwtTokenProvider tokenProvider,
+                       AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -48,25 +51,34 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public JwtAuthResponse login(LoginRequest request) {
-        User user = userRepository.findByName(request.getUsernameOrEmail())
-                .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
-                .orElseThrow(() -> new UnauthorizedException("Invalid username or email"));
+        try {
+            User user = userRepository.findByName(request.getUsernameOrEmail())
+                    .or(() -> userRepository.findByEmail(request.getUsernameOrEmail()))
+                    .orElseThrow(() -> new UnauthorizedException("Invalid username or email"));
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(user.getName(), request.getPassword())
-        );
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(user.getName(), request.getPassword())
+            );
 
-        String token = tokenProvider.generateToken(user);
-        return new JwtAuthResponse(
-                token,
-                tokenProvider.getExpirationMs(),
-                user.getUserId(),
-                user.getName(),
-                user.getEmail(),
-                user.getName(),
-                user.getRole(),
-                null
-        );
+            String token = tokenProvider.generateToken(user);
+            auditLogService.logEvent("AUTH_LOGIN_SUCCESS", "LOGIN", "USER", user.getUserId() != null ? user.getUserId().longValue() : null, user.getName(), user.getUserId() != null ? user.getUserId().longValue() : null, user.getRole(), "User logged in with credentials.", "SUCCESS", "/api/auth/login", null);
+            return new JwtAuthResponse(
+                    token,
+                    tokenProvider.getExpirationMs(),
+                    user.getUserId(),
+                    user.getName(),
+                    user.getEmail(),
+                    user.getName(),
+                    user.getRole(),
+                    null
+            );
+        } catch (Exception ex) {
+            auditLogService.logEvent("AUTH_LOGIN_FAILURE", "LOGIN", "USER", null, request.getUsernameOrEmail(), null, null, "Failed login attempt for user/email: " + request.getUsernameOrEmail(), "FAILURE", "/api/auth/login", null);
+            if (ex instanceof UnauthorizedException) {
+                throw (UnauthorizedException) ex;
+            }
+            throw new UnauthorizedException("Invalid username or password");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -79,6 +91,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("No demo user found for role: " + targetRole));
 
         String token = tokenProvider.generateToken(demoUser);
+        auditLogService.logEvent("PERSONA_SWITCH_EXEC", "DEMO_SWITCH", "USER", demoUser.getUserId() != null ? demoUser.getUserId().longValue() : null, demoUser.getName(), demoUser.getUserId() != null ? demoUser.getUserId().longValue() : null, demoUser.getRole(), "Demo persona switch executed for role: " + targetRole, "SUCCESS", "/api/auth/demo-switch", null);
 
         return new JwtAuthResponse(
                 token,
@@ -152,6 +165,7 @@ public class AuthService {
         );
 
         user = userRepository.save(user);
+        auditLogService.logEvent("USER_CREATED", "REGISTER", "USER", user.getUserId() != null ? user.getUserId().longValue() : null, user.getName(), user.getUserId() != null ? user.getUserId().longValue() : null, user.getRole(), "User registered account: " + user.getEmail(), "SUCCESS", "/api/auth/register", null);
         String token = tokenProvider.generateToken(user);
 
         return new JwtAuthResponse(

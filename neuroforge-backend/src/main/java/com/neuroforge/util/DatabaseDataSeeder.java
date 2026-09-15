@@ -41,6 +41,7 @@ public class DatabaseDataSeeder implements CommandLineRunner {
     private final ProjectAiRepository projectAiRepository;
     private final AiSuggestionRepository aiSuggestionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogRepository auditLogRepository;
 
     @Value("${neuroforge.demo-mode.seed-sample-data:true}")
     private boolean seedDataEnabled;
@@ -66,7 +67,9 @@ public class DatabaseDataSeeder implements CommandLineRunner {
                               AiAssistantRepository aiAssistantRepository,
                               ProjectAiRepository projectAiRepository,
                               AiSuggestionRepository aiSuggestionRepository,
-                              PasswordEncoder passwordEncoder) {
+                              PasswordEncoder passwordEncoder,
+                              AuditLogRepository auditLogRepository) {
+        this.auditLogRepository = auditLogRepository;
         this.userRepository = userRepository;
         this.userPhoneRepository = userPhoneRepository;
         this.projectRepository = projectRepository;

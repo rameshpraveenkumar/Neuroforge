@@ -23,6 +23,7 @@ public class ProjectService {
     private final ProjectTechnologyRepository projectTechnologyRepository;
     private final RepositoryEntityRepository repositoryRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
     private final RequirementRepository requirementRepository;
     private final SprintRepository sprintRepository;
     private final TaskRepository taskRepository;
@@ -33,11 +34,13 @@ public class ProjectService {
                           UserRepository userRepository,
                           RequirementRepository requirementRepository,
                           SprintRepository sprintRepository,
-                          TaskRepository taskRepository) {
+                          TaskRepository taskRepository,
+                             AuditLogService auditLogService) {
         this.projectRepository = projectRepository;
         this.projectTechnologyRepository = projectTechnologyRepository;
         this.repositoryRepository = repositoryRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
         this.requirementRepository = requirementRepository;
         this.sprintRepository = sprintRepository;
         this.taskRepository = taskRepository;
@@ -90,6 +93,7 @@ public class ProjectService {
             repositoryRepository.save(repo);
         }
 
+        auditLogService.record("PROJECT_CREATED", "CREATE", "PROJECT", Long.valueOf(project.getProjectId()), "Project created: " + project.getProjectName());
         return mapToResponse(project);
     }
 
@@ -121,6 +125,7 @@ public class ProjectService {
         }
 
         project = projectRepository.save(project);
+        auditLogService.record("PROJECT_UPDATED", "UPDATE", "PROJECT", Long.valueOf(project.getProjectId()), "Project updated: " + project.getProjectName());
         return mapToResponse(project);
     }
 
@@ -129,6 +134,7 @@ public class ProjectService {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found with id: " + id));
         projectRepository.delete(project);
+        auditLogService.record("PROJECT_DELETED", "DELETE", "PROJECT", Long.valueOf(id), "Project deleted with ID: " + id);
     }
 
     private ProjectResponse mapToResponse(Project project) {

@@ -21,13 +21,16 @@ public class TestCaseService {
     private final TestCaseRepository testCaseRepository;
     private final TaskRepository taskRepository;
     private final BugRepository bugRepository;
+    private final AuditLogService auditLogService;
 
     public TestCaseService(TestCaseRepository testCaseRepository,
                            TaskRepository taskRepository,
-                           BugRepository bugRepository) {
+                           BugRepository bugRepository,
+                           AuditLogService auditLogService) {
         this.testCaseRepository = testCaseRepository;
         this.taskRepository = taskRepository;
         this.bugRepository = bugRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -50,7 +53,7 @@ public class TestCaseService {
     public TestCaseResponse getTestCase(Integer taskId, Integer testNumber) {
         TestCaseId id = new TestCaseId(taskId, testNumber);
         TestCase tc = testCaseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Test case not found with task id: " + taskId + " and test number: " + testNumber));
+                .orElseThrow(() -> new ResourceNotFoundException("Test case not found with taskId=" + taskId + " and testNumber=" + testNumber));
         return mapToResponse(tc);
     }
 
@@ -70,6 +73,9 @@ public class TestCaseService {
                 request.getExpectedResult()
         );
         tc = testCaseRepository.save(tc);
+
+        auditLogService.record("TEST_CASE_CREATED", "CREATE", "TEST_CASE", Long.valueOf(task.getTaskId()), "Test case created: " + tc.getTestName());
+
         return mapToResponse(tc);
     }
 
@@ -84,6 +90,9 @@ public class TestCaseService {
         tc.setExpectedResult(request.getExpectedResult());
 
         tc = testCaseRepository.save(tc);
+
+        auditLogService.record("TEST_CASE_UPDATED", "UPDATE", "TEST_CASE", Long.valueOf(taskId), "Test case updated: " + tc.getTestName());
+
         return mapToResponse(tc);
     }
 
@@ -93,6 +102,8 @@ public class TestCaseService {
         TestCase tc = testCaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Test case not found with task id: " + taskId + " and test number: " + testNumber));
         testCaseRepository.delete(tc);
+
+        auditLogService.record("TEST_CASE_DELETED", "DELETE", "TEST_CASE", Long.valueOf(taskId), "Test case deleted for task ID: " + taskId);
     }
 
     private TestCaseResponse mapToResponse(TestCase tc) {

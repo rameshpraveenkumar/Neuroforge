@@ -20,13 +20,16 @@ public class BugService {
     private final BugRepository bugRepository;
     private final TestCaseRepository testCaseRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     public BugService(BugRepository bugRepository,
                       TestCaseRepository testCaseRepository,
-                      UserRepository userRepository) {
+                      UserRepository userRepository,
+                      AuditLogService auditLogService) {
         this.bugRepository = bugRepository;
         this.testCaseRepository = testCaseRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional(readOnly = true)
@@ -88,6 +91,9 @@ public class BugService {
                 developer
         );
         bug = bugRepository.save(bug);
+
+        auditLogService.record("BUG_CREATED", "CREATE", "BUG", Long.valueOf(nextBugNumber), "Defect logged: " + bug.getBugTitle());
+
         return mapToResponse(bug);
     }
 
@@ -107,6 +113,9 @@ public class BugService {
         }
 
         bug = bugRepository.save(bug);
+
+        auditLogService.record("BUG_STATUS_CHANGED", "STATUS_CHANGE", "BUG", Long.valueOf(bugNumber), "Bug status transitioned to " + request.getStatus() + " for bug #" + bugNumber);
+
         return mapToResponse(bug);
     }
 
@@ -117,6 +126,8 @@ public class BugService {
         Bug bug = bugRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Bug not found"));
         bugRepository.delete(bug);
+
+        auditLogService.record("BUG_DELETED", "DELETE", "BUG", Long.valueOf(bugNumber), "Bug deleted for task ID: " + taskId);
     }
 
     private BugResponse mapToResponse(Bug bug) {

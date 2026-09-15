@@ -29,12 +29,15 @@ public class RepositoryService {
     private final UserRepository userRepository;
     private final RepositoryCollaboratorRepository collaboratorRepository;
     private final CodeCommitRepository commitRepository;
+    private final AuditLogService auditLogService;
 
     public RepositoryService(RepositoryEntityRepository repositoryRepository,
                              ProjectRepository projectRepository,
                              UserRepository userRepository,
                              RepositoryCollaboratorRepository collaboratorRepository,
-                             CodeCommitRepository commitRepository) {
+                             CodeCommitRepository commitRepository,
+                             AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
         this.repositoryRepository = repositoryRepository;
         this.projectRepository = projectRepository;
         this.userRepository = userRepository;
@@ -79,6 +82,7 @@ public class RepositoryService {
             }
         }
 
+        auditLogService.record("REPOSITORY_CREATED", "CREATE", "REPOSITORY", Long.valueOf(savedRepo.getRepositoryId()), "Repository created: " + savedRepo.getRepositoryName());
         return mapToResponse(savedRepo);
     }
 
@@ -90,6 +94,7 @@ public class RepositoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         collaboratorRepository.save(new RepositoryCollaborator(repo, user));
+        auditLogService.record("COLLABORATOR_ADDED", "ADD_COLLABORATOR", "REPOSITORY", Long.valueOf(repositoryId), "Collaborator added (User ID: " + userId + ") to repo ID: " + repositoryId);
     }
 
     private RepositoryResponse mapToResponse(Repository repo) {

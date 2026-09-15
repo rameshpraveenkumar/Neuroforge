@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { PageHeader } from '../../components/common/PageHeader';
 import { KpiCard } from '../../components/common/KpiCard';
 import { SearchInput } from '../../components/common/SearchInput';
+import { auditApi } from '../../api/auditApi';
 import {
   Download,
   FileSpreadsheet,
@@ -76,15 +77,38 @@ export const AuditLogsPage = () => {
   const { user } = useAuth();
   const toast = useToast();
 
+  const [logs, setLogs] = useState(STATIC_AUDIT_EVENTS);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [eventFilter, setEventFilter] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLogs = async () => {
+      try {
+        setLoading(true);
+        const res = await auditApi.getAll();
+        if (isMounted && res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          setLogs(res.data);
+        }
+      } catch (err) {
+        console.warn('Failed to load audit logs from API:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchLogs();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleExport = (format) => {
     const dataStr =
       format === 'json'
-        ? JSON.stringify(STATIC_AUDIT_EVENTS, null, 2)
+        ? JSON.stringify(logs, null, 2)
         : 'Timestamp,Event,Actor,Resource,Status,IP,Details\n' +
-          STATIC_AUDIT_EVENTS.map(
+          logs.map(
             (e) => `"${e.timestamp}","${e.event}","${e.actor}","${e.resource}","${e.status}","${e.ip}","${e.details}"`
           ).join('\n');
 
@@ -98,7 +122,7 @@ export const AuditLogsPage = () => {
     toast.success(`Audit trail exported as ${format.toUpperCase()}`);
   };
 
-  const filteredLogs = STATIC_AUDIT_EVENTS.filter((log) => {
+  const filteredLogs = logs.filter((log) => {
     if (!log) return false;
     const q = (search || '').toLowerCase();
     const matchesSearch =

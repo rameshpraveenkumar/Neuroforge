@@ -22,17 +22,20 @@ public class TaskService {
     private final TaskLabelRepository taskLabelRepository;
     private final SprintRepository sprintRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
     private final TestCaseRepository testCaseRepository;
 
     public TaskService(TaskRepository taskRepository,
                        TaskLabelRepository taskLabelRepository,
                        SprintRepository sprintRepository,
                        UserRepository userRepository,
-                       TestCaseRepository testCaseRepository) {
+                       TestCaseRepository testCaseRepository,
+                             AuditLogService auditLogService) {
         this.taskRepository = taskRepository;
         this.taskLabelRepository = taskLabelRepository;
         this.sprintRepository = sprintRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
         this.testCaseRepository = testCaseRepository;
     }
 
@@ -96,6 +99,7 @@ public class TaskService {
             }
         }
 
+        auditLogService.record("TASK_CREATED", "CREATE", "TASK", Long.valueOf(task.getTaskId()), "Task created: " + task.getTitle());
         return mapToResponse(task);
     }
 
@@ -133,6 +137,7 @@ public class TaskService {
         }
 
         task = taskRepository.save(task);
+        auditLogService.record("TASK_UPDATED", "UPDATE", "TASK", Long.valueOf(task.getTaskId()), "Task updated: " + task.getTitle());
         return mapToResponse(task);
     }
 
@@ -142,6 +147,7 @@ public class TaskService {
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
         task.setStatus(request.getStatus());
         task = taskRepository.save(task);
+        auditLogService.record("TASK_STATUS_TRANSITION", "STATUS_CHANGE", "TASK", Long.valueOf(task.getTaskId()), "Task status updated to " + request.getStatus() + ": " + task.getTitle());
         return mapToResponse(task);
     }
 
@@ -150,6 +156,7 @@ public class TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
         taskRepository.delete(task);
+        auditLogService.record("TASK_DELETED", "DELETE", "TASK", Long.valueOf(id), "Task deleted with ID: " + id);
     }
 
     private TaskResponse mapToResponse(Task task) {

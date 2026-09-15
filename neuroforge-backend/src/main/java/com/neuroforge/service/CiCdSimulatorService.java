@@ -14,9 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CiCdSimulatorService {
 
     private final RepositoryEntityRepository repositoryRepository;
+    private final AuditLogService auditLogService;
     private final Map<String, PipelineRunResponse> executionHistory = new ConcurrentHashMap<>();
 
-    public CiCdSimulatorService(RepositoryEntityRepository repositoryRepository) {
+    public CiCdSimulatorService(RepositoryEntityRepository repositoryRepository, AuditLogService auditLogService) {
+        this.auditLogService = auditLogService;
         this.repositoryRepository = repositoryRepository;
     }
 
@@ -105,6 +107,7 @@ public class CiCdSimulatorService {
         response.setStages(stages);
 
         executionHistory.put(pipelineId, response);
+        auditLogService.record("PIPELINE_RUN_TRIGGER", "TRIGGER", "PIPELINE", Long.valueOf(repo.getRepositoryId()), "Simulated CI/CD 6-stage pipeline build executed for branch [" + targetBranch + "].");
         return response;
     }
 
