@@ -1,0 +1,51 @@
+export const mockAiAssistants = [
+  {
+    aiId: 1,
+    id: 1,
+    modelName: 'USER_STORY_GEN',
+    name: 'USER_STORY_GEN',
+    version: 'v2.4',
+    recommendationType: 'USER_STORY',
+    specialty: 'USER_STORY',
+  },
+  {
+    aiId: 2,
+    id: 2,
+    modelName: 'TEST_CASE_GEN',
+    name: 'TEST_CASE_GEN',
+    version: 'v1.8',
+    recommendationType: 'TEST_CASE',
+    specialty: 'TEST_CASE',
+  },
+  {
+    aiId: 3,
+    id: 3,
+    modelName: 'SPRINT_RISK',
+    name: 'SPRINT_RISK',
+    version: 'v1.5',
+    recommendationType: 'SPRINT_RISK',
+    specialty: 'SPRINT_RISK',
+  },
+  {
+    aiId: 4,
+    id: 4,
+    modelName: 'CODE_REVIEW_GEN',
+    name: 'CODE_REVIEW_GEN',
+    version: 'v2.0',
+    recommendationType: 'CODE_REVIEW',
+    specialty: 'CODE_REVIEW',
+  },
+];
+
+export const mockAiSuggestion = {
+  suggestionId: 42,
+  id: 42,
+  aiId: 1,
+  modelName: 'USER_STORY_GEN',
+  recommendationType: 'USER_STORY',
+  suggestionType: 'USER_STORY',
+  suggestionText: '### AI-Generated User Story: Real-Time Portfolio Rebalancing\n\n**User Story**:\nAs an Enterprise User, I want to rebalance portfolios in real-time so that risk exposure is minimized.',
+  suggestion: '### AI-Generated User Story: Real-Time Portfolio Rebalancing\n\n**User Story**:\nAs an Enterprise User, I want to rebalance portfolios in real-time so that risk exposure is minimized.',
+  createdAt: '2026-03-12T17:45:00',
+  source: 'OFFLINE_HEURISTIC',
+};

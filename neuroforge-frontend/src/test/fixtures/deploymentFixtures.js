@@ -1,0 +1,26 @@
+﻿export const mockDeployments = [
+  {
+    deploymentId: 1,
+    id: 1,
+    projectId: 1,
+    environment: 'PRODUCTION',
+    version: 'v2026.4.1',
+    status: 'SUCCESS',
+    deployedBy: 'Kasper Lindqvist',
+    deployedAt: '2026-03-12T18:00:00',
+    commitHash: '03e5a93',
+    releaseNotes: 'Production rollout: Optional External LLM and Persistent CI/CD.',
+  },
+  {
+    deploymentId: 2,
+    id: 2,
+    projectId: 1,
+    environment: 'STAGING',
+    version: 'v2026.4.0-rc2',
+    status: 'SUCCESS',
+    deployedBy: 'Kasper Lindqvist',
+    deployedAt: '2026-03-11T14:30:00',
+    commitHash: '4592ed4',
+    releaseNotes: 'Staging verification build for CI/CD simulator.',
+  },
+];

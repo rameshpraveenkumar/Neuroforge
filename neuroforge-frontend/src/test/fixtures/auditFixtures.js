@@ -1,0 +1,32 @@
+﻿export const mockAuditLogs = [
+  {
+    id: 'AUD-101',
+    event: 'AUTH_LOGIN_SUCCESS',
+    actor: 'admin (System Administrator)',
+    resource: '/api/auth/login',
+    status: 'SUCCESS',
+    ip: '127.0.0.1 (Localhost)',
+    timestamp: '2026-03-12T17:30:00',
+    details: 'JWT Bearer token issued with claims [ROLE_SYSTEM_ADMIN].',
+  },
+  {
+    id: 'AUD-102',
+    event: 'AI_SYNTHESIS_OFFLINE',
+    actor: 'Elena Rostova (Product Owner)',
+    resource: '/api/ai/generate',
+    status: 'SUCCESS',
+    ip: '192.168.1.105',
+    timestamp: '2026-03-12T17:45:00',
+    details: 'Synthesized USER_STORY using offline heuristic provider.',
+  },
+  {
+    id: 'AUD-103',
+    event: 'PIPELINE_RUN_TRIGGER',
+    actor: 'Kasper Lindqvist (DevOps Engineer)',
+    resource: '/api/cicd/run/repository/1',
+    status: 'SUCCESS',
+    ip: '10.0.4.18',
+    timestamp: '2026-03-12T17:50:00',
+    details: 'Simulated CI/CD 6-stage pipeline build executed for branch [main].',
+  },
+];
